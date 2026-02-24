@@ -1,40 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download } from 'lucide-react';
 
-// --- AI API Utility ---
+// --- AI API Utility (Mock) ---
 const generateAIResponse = async (prompt, chatHistory = []) => {
-  const apiKey = ""; // API key is provided by the execution environment
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-  
-  // 履歴を含めてコンテキストを維持
-  const historyText = chatHistory.map(msg => `${msg.role === 'user' ? 'ユーザー' : 'AI'}: ${msg.content}`).join('\n');
-  const fullPrompt = `${historyText}\nユーザー: ${prompt}\nAI:`;
-
-  const payload = {
-    contents: [{ parts: [{ text: fullPrompt }] }],
-    systemInstruction: { parts: [{ text: "あなたは仮想OS「WebOS」に内蔵されたサポートAIです。親切かつ簡潔に、日本語で答えてください。" }] }
-  };
-
-  const fetchWithRetry = async (retries = 5, delay = 1000) => {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) throw new Error(`API Error: ${response.status}`);
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "申し訳ありません、応答を生成できませんでした。";
-    } catch (error) {
-      if (retries === 0) return "通信エラーが発生しました。ネットワーク状況を確認してください。";
-      await new Promise(res => setTimeout(res, delay));
-      return fetchWithRetry(retries - 1, delay * 2);
-    }
-  };
-
-  return await fetchWithRetry();
+  // APIを使用せず、1秒待機した後にサンプルの返答を返す
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(`「${prompt}」ですね。承知いたしました。何か他にお手伝いできることはありますか？（※これはAPIを使用しないサンプルの返答です）`);
+    }, 1000);
+  });
 };
-
 
 // --- Apps ---
 
@@ -84,7 +59,8 @@ const CameraApp = ({ onClose }) => {
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageUrl = canvas.toDataURL('image/jpeg');
+      // 高画質のJPG形式で画像データを生成
+      const imageUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCapturedImage(imageUrl);
     }
   };
@@ -227,20 +203,31 @@ const AIAssistantApp = ({ onClose }) => {
 
 // 3. Browser App
 const BrowserApp = ({ onClose }) => {
-  const [inputUrl, setInputUrl] = useState("https://ja.wikipedia.org/wiki/メインページ");
-  const [currentUrl, setCurrentUrl] = useState("https://ja.wikipedia.org/wiki/メインページ");
+  // 初期ページをGoogleに設定 (iframeで表示しやすくするためのパラメータ付き)
+  const [inputUrl, setInputUrl] = useState("https://www.google.com/webhp?igu=1");
+  const [currentUrl, setCurrentUrl] = useState("https://www.google.com/webhp?igu=1");
 
   const handleNavigate = (e) => {
     e.preventDefault();
-    let urlToNavigate = inputUrl.trim();
-    if (!urlToNavigate) return;
+    let query = inputUrl.trim();
+    if (!query) return;
     
-    // http/httpsがなければ補完
-    if (!/^https?:\/\//i.test(urlToNavigate)) {
-      urlToNavigate = `https://${urlToNavigate}`;
+    // 入力がURL形式かどうかを判定
+    const isUrl = /^https?:\/\//i.test(query) || /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(query);
+
+    if (isUrl) {
+      let urlToNavigate = query;
+      // http/httpsがなければ補完
+      if (!/^https?:\/\//i.test(urlToNavigate)) {
+        urlToNavigate = `https://${urlToNavigate}`;
+      }
+      setCurrentUrl(urlToNavigate);
+      setInputUrl(urlToNavigate);
+    } else {
+      // URLでなければGoogle検索を実行
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&igu=1`;
+      setCurrentUrl(searchUrl);
     }
-    setCurrentUrl(urlToNavigate);
-    setInputUrl(urlToNavigate); // 補完したURLを入力欄に反映
   };
 
   return (
