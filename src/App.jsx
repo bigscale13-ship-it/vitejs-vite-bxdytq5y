@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download } from 'lucide-react';
+import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download, Images } from 'lucide-react';
 
 // --- AI API Utility (Mock) ---
 const generateAIResponse = async (prompt, chatHistory = []) => {
@@ -14,7 +14,7 @@ const generateAIResponse = async (prompt, chatHistory = []) => {
 // --- Apps ---
 
 // 1. Camera App
-const CameraApp = ({ onClose }) => {
+const CameraApp = ({ onClose, setPhotos }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [error, setError] = useState("");
@@ -62,6 +62,11 @@ const CameraApp = ({ onClose }) => {
       // 高画質のJPG形式で画像データを生成
       const imageUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCapturedImage(imageUrl);
+      
+      // 写真アプリ用に状態を保存
+      if (setPhotos) {
+        setPhotos(prev => [imageUrl, ...prev]);
+      }
     }
   };
 
@@ -117,7 +122,54 @@ const CameraApp = ({ onClose }) => {
   );
 };
 
-// 2. AI Assistant App
+// 2. Gallery App (写真フォルダ)
+const GalleryApp = ({ onClose, photos }) => {
+  const [viewImage, setViewImage] = useState(null);
+
+  if (viewImage) {
+    return (
+      <div className="flex flex-col h-full bg-black text-white relative">
+        <div className="absolute top-4 left-4 z-50">
+          <button onClick={() => setViewImage(null)} className="p-2 bg-black/50 rounded-full text-white">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="flex-grow flex items-center justify-center overflow-hidden">
+          <img src={viewImage} alt="Viewed" className="w-full h-full object-contain" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-white text-black relative">
+      <div className="bg-slate-100 p-2 flex items-center space-x-2 border-b border-slate-300">
+        <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-600">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-xl font-bold ml-2">写真</h1>
+      </div>
+      <div className="flex-grow overflow-y-auto p-1 bg-white">
+        {photos && photos.length > 0 ? (
+          <div className="grid grid-cols-3 gap-1">
+            {photos.map((photo, idx) => (
+              <div key={idx} className="aspect-square bg-slate-200 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setViewImage(photo)}>
+                <img src={photo} alt={`Photo ${idx}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center text-slate-400">
+            <Images className="w-12 h-12 mb-4 text-slate-300" />
+            <p className="text-sm">写真がありません</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// 3. AI Assistant App
 const AIAssistantApp = ({ onClose }) => {
   const [messages, setMessages] = useState([{ role: 'ai', content: 'こんにちは！WebOSのサポートAIです。何でも聞いてください。' }]);
   const [input, setInput] = useState("");
@@ -201,7 +253,7 @@ const AIAssistantApp = ({ onClose }) => {
   );
 };
 
-// 3. Browser App
+// 4. Browser App
 const BrowserApp = ({ onClose }) => {
   // 初期ページをGoogleに設定 (iframeで表示しやすくするためのパラメータ付き)
   const [inputUrl, setInputUrl] = useState("https://www.google.com/webhp?igu=1");
@@ -262,7 +314,7 @@ const BrowserApp = ({ onClose }) => {
   );
 };
 
-// 4. Settings App
+// 5. Settings App
 const SettingsApp = ({ onClose }) => {
   return (
     <div className="flex flex-col h-full bg-slate-100 text-slate-900">
@@ -306,6 +358,7 @@ const SettingsApp = ({ onClose }) => {
 
 const APPS = [
   { id: 'camera', name: 'カメラ', icon: Camera, color: 'bg-yellow-500', component: CameraApp },
+  { id: 'gallery', name: '写真', icon: Images, color: 'bg-purple-500', component: GalleryApp },
   { id: 'ai', name: 'AIアシスタント', icon: MessageSquare, color: 'bg-blue-500', component: AIAssistantApp },
   { id: 'browser', name: 'ブラウザ', icon: Globe, color: 'bg-green-500', component: BrowserApp },
   { id: 'settings', name: '設定', icon: Settings, color: 'bg-slate-500', component: SettingsApp },
@@ -314,6 +367,9 @@ const APPS = [
 export default function App() {
   const [activeApp, setActiveApp] = useState(null);
   const [time, setTime] = useState(new Date());
+  
+  // OS全体で共有するデータ（写真一覧など）
+  const [photos, setPhotos] = useState([]);
 
   // Tailwind CSSの動的読み込みと時計の更新
   useEffect(() => {
@@ -408,7 +464,13 @@ export default function App() {
               
               {/* アプリコンテンツ */}
               <div className="flex-grow overflow-hidden relative">
-                {ActiveComponent && <ActiveComponent onClose={handleCloseApp} />}
+                {ActiveComponent && (
+                  <ActiveComponent 
+                    onClose={handleCloseApp} 
+                    photos={photos} 
+                    setPhotos={setPhotos} 
+                  />
+                )}
               </div>
             </div>
 
@@ -428,7 +490,7 @@ export default function App() {
         <p className="text-sm">端末やOSに依存しない仮想スマートフォンの概念実証です。</p>
         <ul className="text-sm space-y-2 list-disc pl-4">
             <li><strong>AIアシスタント:</strong> 内蔵LLM APIと通信し、コンテキストを保持して会話します。</li>
-            <li><strong>カメラ:</strong> ブラウザのMediaDevices API経由で実際のデバイスのカメラにアクセスします。</li>
+            <li><strong>カメラと写真:</strong> 撮影した画像は写真アプリ内に保存・一覧表示されます。</li>
             <li><strong>操作:</strong> 画面下部の白いバーをクリックするか、各アプリ左上の戻るボタンでホームに戻ります。</li>
         </ul>
       </div>
