@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, Home } from 'lucide-react';
+import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download } from 'lucide-react';
 
 // --- AI API Utility ---
 const generateAIResponse = async (prompt, chatHistory = []) => {
@@ -39,18 +39,20 @@ const generateAIResponse = async (prompt, chatHistory = []) => {
 // --- Apps ---
 
 // 1. Camera App
-const CameraApp = () => {
+const CameraApp = ({ onClose }) => {
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const [error, setError] = useState("");
+  const [capturedImage, setCapturedImage] = useState(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
-    let stream = null;
     const startCamera = async () => {
       try {
         // facingMode: "environment" でバックカメラを優先
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = streamRef.current;
         }
       } catch (err) {
         console.error("Camera error:", err);
@@ -61,14 +63,61 @@ const CameraApp = () => {
     startCamera();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
 
+  const handleClose = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    onClose();
+  };
+
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageUrl = canvas.toDataURL('image/jpeg');
+      setCapturedImage(imageUrl);
+    }
+  };
+
+  if (capturedImage) {
+    return (
+      <div className="flex flex-col h-full bg-black text-white relative">
+        <div className="absolute top-4 left-4 z-50">
+          <button onClick={() => setCapturedImage(null)} className="p-2 bg-black/50 rounded-full text-white">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="flex-grow flex items-center justify-center overflow-hidden">
+          <img src={capturedImage} alt="Captured" className="w-full h-full object-contain" />
+        </div>
+        <div className="h-24 bg-black flex items-center justify-center pb-4 absolute bottom-0 w-full bg-opacity-80">
+          <a href={capturedImage} download="photo.jpg" className="flex items-center space-x-2 bg-white text-black px-6 py-3 rounded-full font-bold">
+            <Download className="w-5 h-5" />
+            <span>保存する</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-black text-white relative">
+      <div className="absolute top-4 left-4 z-50">
+        <button onClick={handleClose} className="p-2 bg-black/50 rounded-full text-white active:bg-black/70">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      </div>
+      
       <div className="flex-grow flex items-center justify-center overflow-hidden relative">
         {error ? (
           <div className="p-4 text-center text-red-400">{error}</div>
@@ -80,16 +129,20 @@ const CameraApp = () => {
             className="w-full h-full object-cover"
           />
         )}
+        <canvas ref={canvasRef} className="hidden" />
       </div>
       <div className="h-24 bg-black flex items-center justify-center pb-4 absolute bottom-0 w-full bg-opacity-50">
-        <button className="w-16 h-16 rounded-full border-4 border-white bg-white/20 active:bg-white/50 transition-colors"></button>
+        <button 
+          onClick={takePhoto}
+          className="w-16 h-16 rounded-full border-4 border-white bg-white/20 active:bg-white/80 transition-colors"
+        ></button>
       </div>
     </div>
   );
 };
 
 // 2. AI Assistant App
-const AIAssistantApp = () => {
+const AIAssistantApp = ({ onClose }) => {
   const [messages, setMessages] = useState([{ role: 'ai', content: 'こんにちは！WebOSのサポートAIです。何でも聞いてください。' }]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -119,6 +172,13 @@ const AIAssistantApp = () => {
 
   return (
     <div className="flex flex-col h-full bg-slate-900 text-slate-100">
+      <div className="p-3 bg-slate-800 border-b border-slate-700 flex items-center">
+        <button onClick={onClose} className="p-1 mr-2 rounded-full hover:bg-slate-700 text-slate-300">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <span className="font-bold">AIアシスタント</span>
+      </div>
+
       <div className="flex-grow overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -165,42 +225,64 @@ const AIAssistantApp = () => {
   );
 };
 
-// 3. Browser App (Mock)
-const BrowserApp = () => {
-  const [url, setUrl] = useState("https://example.com");
-  const [inputUrl, setInputUrl] = useState("example.com");
+// 3. Browser App
+const BrowserApp = ({ onClose }) => {
+  const [inputUrl, setInputUrl] = useState("https://ja.wikipedia.org/wiki/メインページ");
+  const [currentUrl, setCurrentUrl] = useState("https://ja.wikipedia.org/wiki/メインページ");
+
+  const handleNavigate = (e) => {
+    e.preventDefault();
+    let urlToNavigate = inputUrl.trim();
+    if (!urlToNavigate) return;
+    
+    // http/httpsがなければ補完
+    if (!/^https?:\/\//i.test(urlToNavigate)) {
+      urlToNavigate = `https://${urlToNavigate}`;
+    }
+    setCurrentUrl(urlToNavigate);
+    setInputUrl(urlToNavigate); // 補完したURLを入力欄に反映
+  };
 
   return (
     <div className="flex flex-col h-full bg-white text-black">
       <div className="bg-slate-100 p-2 flex items-center space-x-2 border-b border-slate-300">
-        <div className="flex-grow bg-white rounded-full flex items-center px-3 py-1 border border-slate-300 shadow-inner">
+        <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-600">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <form onSubmit={handleNavigate} className="flex-grow bg-white rounded-full flex items-center px-3 py-1 border border-slate-300 shadow-inner">
           <Globe className="w-4 h-4 text-slate-400 mr-2" />
           <input 
             type="text" 
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
             className="w-full text-sm outline-none bg-transparent"
-            readOnly
+            placeholder="検索またはURLを入力"
           />
-        </div>
+        </form>
       </div>
-      <div className="flex-grow flex items-center justify-center bg-slate-50 flex-col p-6 text-center">
-        <Globe className="w-16 h-16 text-slate-300 mb-4" />
-        <h2 className="text-xl font-bold text-slate-700 mb-2">Web Browser</h2>
-        <p className="text-sm text-slate-500">
-          iframeの制限によりプレビュー環境では外部サイトの表示が制限される場合があります。<br/>
-          実際の運用時はここにWebコンテンツが表示されます。
-        </p>
+      <div className="flex-grow relative bg-slate-50">
+        <iframe 
+          src={currentUrl} 
+          className="w-full h-full border-none bg-white"
+          title="Virtual Browser"
+          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+        />
+        <div className="absolute bottom-4 left-4 right-4 bg-black/80 text-white text-[10px] p-2 rounded-xl pointer-events-none text-center shadow-lg opacity-80">
+          ※外部サイトのセキュリティ設定(X-Frame-Options等)により、表示がブロックされるページがあります。
+        </div>
       </div>
     </div>
   );
 };
 
 // 4. Settings App
-const SettingsApp = () => {
+const SettingsApp = ({ onClose }) => {
   return (
     <div className="flex flex-col h-full bg-slate-100 text-slate-900">
-      <div className="p-4 bg-white border-b border-slate-200">
+      <div className="p-4 bg-white border-b border-slate-200 flex items-center">
+        <button onClick={onClose} className="p-1 mr-2 rounded-full hover:bg-slate-100 text-slate-600">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
         <h1 className="text-xl font-bold">設定</h1>
       </div>
       <div className="flex-grow overflow-y-auto p-4 space-y-4">
@@ -335,11 +417,11 @@ export default function App() {
             <div className={`absolute inset-0 bg-white transition-all duration-300 z-20 flex flex-col ${activeApp ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}`}>
               
               {/* アプリ内ヘッダー (ステータスバーの領域を確保) */}
-              <div className="h-8 bg-transparent"></div>
+              <div className="h-8 bg-transparent pointer-events-none"></div>
               
               {/* アプリコンテンツ */}
               <div className="flex-grow overflow-hidden relative">
-                {ActiveComponent && <ActiveComponent />}
+                {ActiveComponent && <ActiveComponent onClose={handleCloseApp} />}
               </div>
             </div>
 
@@ -360,7 +442,7 @@ export default function App() {
         <ul className="text-sm space-y-2 list-disc pl-4">
             <li><strong>AIアシスタント:</strong> 内蔵LLM APIと通信し、コンテキストを保持して会話します。</li>
             <li><strong>カメラ:</strong> ブラウザのMediaDevices API経由で実際のデバイスのカメラにアクセスします。</li>
-            <li><strong>操作:</strong> 画面下部の白いバーをクリックするとホームに戻ります。</li>
+            <li><strong>操作:</strong> 画面下部の白いバーをクリックするか、各アプリ左上の戻るボタンでホームに戻ります。</li>
         </ul>
       </div>
     </div>
