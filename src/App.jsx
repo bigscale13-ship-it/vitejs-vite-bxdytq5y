@@ -145,7 +145,7 @@ const GalleryApp = ({ onClose, photos }) => {
         </button>
         <h1 className="text-xl font-bold ml-2">写真</h1>
       </div>
-      <div className="flex-grow overflow-y-auto p-1 bg-white">
+      <div className="flex-grow overflow-y-auto p-1 bg-white overscroll-contain">
         {photos && photos.length > 0 ? (
           <div className="grid grid-cols-3 gap-1">
             {photos.map((photo, idx) => (
@@ -212,7 +212,7 @@ const AIAssistantApp = ({ onClose }) => {
         <span className="font-bold">AIアシスタント</span>
       </div>
 
-      <div className="flex-grow overflow-y-auto p-4 space-y-4" ref={chatContainerRef}>
+      <div className="flex-grow overflow-y-auto p-4 space-y-4 overscroll-contain" ref={chatContainerRef}>
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] p-3 rounded-2xl ${
@@ -289,29 +289,35 @@ const BrowserApp = ({ onClose }) => {
 
   return (
     <div className="flex flex-col h-full bg-white text-black">
-      <div className="bg-slate-100 p-2 flex items-center space-x-2 border-b border-slate-300">
-        <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-600">
+      <div className="bg-slate-100 p-2 flex items-center space-x-2 border-b border-slate-300 shrink-0">
+        <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-600 shrink-0">
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <form onSubmit={handleNavigate} className="flex-grow bg-white rounded-full flex items-center px-3 py-1 border border-slate-300 shadow-inner">
-          <Globe className="w-4 h-4 text-slate-400 mr-2" />
+        <form onSubmit={handleNavigate} className="flex-grow bg-white rounded-full flex items-center px-3 py-1 border border-slate-300 shadow-inner min-w-0">
+          <Globe className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
           <input 
             type="text" 
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
-            className="w-full text-sm outline-none bg-transparent"
+            className="w-full text-sm outline-none bg-transparent min-w-0"
             placeholder="検索またはURLを入力"
           />
         </form>
       </div>
-      <div className="flex-grow relative bg-slate-50">
+      <div className="flex-grow relative bg-slate-50 overflow-hidden w-full">
         <iframe 
           src={currentUrl} 
-          className="w-full h-full border-none bg-white"
+          className="border-none bg-white block"
+          style={{ 
+            width: '125%', 
+            height: '125%', 
+            transform: 'scale(0.8)', 
+            transformOrigin: 'top left' 
+          }}
           title="Virtual Browser"
           sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
         />
-        <div className="absolute bottom-4 left-4 right-4 bg-black/80 text-white text-[10px] p-2 rounded-xl pointer-events-none text-center shadow-lg opacity-80">
+        <div className="absolute bottom-2 left-4 right-4 bg-black/80 text-white text-[10px] p-2 rounded-xl pointer-events-none text-center shadow-lg opacity-80 z-10">
           ※外部サイトのセキュリティ設定(X-Frame-Options等)により、表示がブロックされるページがあります。
         </div>
       </div>
@@ -498,7 +504,7 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
            'About emulated device'}
         </h1>
       </div>
-      <div className="flex-grow overflow-y-auto">
+      <div className="flex-grow overflow-y-auto overscroll-contain">
         {view === 'main' && renderMainSettings()}
         {view === 'display' && renderDisplaySettings()}
         {view === 'ai' && renderAISettings()}
@@ -579,7 +585,7 @@ const MailApp = ({ onClose }) => {
         </button>
         <h1 className="text-xl font-bold">受信トレイ</h1>
       </div>
-      <div className="flex-grow overflow-y-auto">
+      <div className="flex-grow overflow-y-auto overscroll-contain">
         {mails.map((m, i) => (
           <div key={i} className="p-4 border-b border-slate-100 active:bg-slate-50 cursor-pointer">
             <div className="flex justify-between mb-1">
@@ -702,7 +708,7 @@ const ContactsApp = ({ onClose }) => {
           <span className="text-sm text-slate-400">検索</span>
         </div>
       </div>
-      <div className="flex-grow overflow-y-auto">
+      <div className="flex-grow overflow-y-auto overscroll-contain">
         {contacts.map((c, i) => (
           <div key={i} className="flex items-center p-3 border-b border-slate-50 active:bg-slate-50 cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-4 text-lg">
@@ -731,7 +737,7 @@ const NotesApp = ({ onClose }) => {
         </button>
         <h1 className="text-xl font-bold">メモ</h1>
       </div>
-      <div className="flex-grow overflow-y-auto p-4 space-y-3">
+      <div className="flex-grow overflow-y-auto p-4 space-y-3 overscroll-contain">
         {notes.map((n, i) => (
           <div key={i} className="p-4 bg-white rounded-xl shadow-sm border border-slate-100 cursor-pointer active:bg-slate-50">
             <div className="font-bold text-base mb-1">{n.title}</div>
@@ -846,7 +852,8 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4 sm:p-8 font-sans">
+    // min-h-screen から fixed inset-0 overflow-hidden overscroll-none に変更して画面全体を完全に固定
+    <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center p-4 sm:p-8 font-sans overflow-hidden overscroll-none">
       
       {/* 仮想スマートフォンの外枠 */}
       <div className="relative w-full max-w-[380px] h-[800px] max-h-[90vh] bg-black rounded-[3rem] p-3 shadow-2xl border-4 border-neutral-800 overflow-hidden ring-1 ring-white/10">
@@ -926,7 +933,7 @@ export default function App() {
               onTouchStart={(e) => e.stopPropagation()} // タッチ操作も伝播させない
               onMouseDown={(e) => e.stopPropagation()} 
             >
-              <div className="h-10 w-full flex justify-center items-center cursor-pointer mt-8" onClick={() => setIsDrawerOpen(false)}>
+              <div className="h-10 w-full flex justify-center items-center cursor-pointer mt-8 shrink-0" onClick={() => setIsDrawerOpen(false)}>
                 <ChevronDown className="w-6 h-6 text-slate-400" />
               </div>
               
@@ -945,7 +952,7 @@ export default function App() {
               </div>
 
               {/* アイコングリッド */}
-              <div className="flex-grow overflow-y-auto px-6 pt-2 pb-20 content-start">
+              <div className="flex-grow overflow-y-auto px-6 pt-2 pb-20 content-start overscroll-contain">
                 {filteredApps.length > 0 ? (
                   <div className="grid grid-cols-4 gap-y-6 gap-x-4">
                     {filteredApps.map((app) => (
@@ -975,10 +982,10 @@ export default function App() {
             {/* アプリウィンドウ (個別アプリ起動時) */}
             <div className={`absolute inset-0 bg-white transition-all duration-300 z-40 flex flex-col ${activeApp ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}`}>
               
-              <div className="h-8 bg-transparent pointer-events-none shrink-0"></div>
+              <div className="h-10 bg-transparent pointer-events-none shrink-0"></div>
               
               <div 
-                className="flex-grow overflow-hidden relative" 
+                className="flex-grow overflow-hidden relative pb-6" 
                 onPointerDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
