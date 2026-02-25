@@ -316,8 +316,9 @@ const BrowserApp = ({ onClose }) => {
 };
 
 // 5. Settings App
-const SettingsApp = ({ onClose, currentWallpaper, setWallpaper }) => {
-  const fileInputRef = useRef(null);
+const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, setAiCustomIcon }) => {
+  const wallpaperInputRef = useRef(null);
+  const aiIconInputRef = useRef(null);
 
   const wallpapers = [
     { id: 'default', name: 'デフォルト', style: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900' },
@@ -327,12 +328,12 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper }) => {
     { id: 'dark', name: 'ダーク', style: 'bg-slate-900' },
   ];
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = (e, setter) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setWallpaper(reader.result); // Base64化された画像データを壁紙としてセット
+        setter(reader.result); // Base64化された画像データをセット
       };
       reader.readAsDataURL(file);
     }
@@ -364,10 +365,10 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper }) => {
                   <span className="text-[10px] text-slate-500 mt-1">{wp.name}</span>
                 </div>
               ))}
-              {/* カスタム画像追加ボタン */}
+              {/* カスタム壁紙追加ボタン */}
               <div className="flex flex-col items-center">
                 <button 
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => wallpaperInputRef.current?.click()}
                   className={`w-10 h-10 rounded-full bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center transition-transform active:scale-90 ${currentWallpaper?.startsWith('data:image') ? 'border-blue-500 border-solid' : 'hover:border-slate-400'}`}
                 >
                   {currentWallpaper?.startsWith('data:image') ? (
@@ -379,8 +380,47 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper }) => {
                 <span className="text-[10px] text-slate-500 mt-1">追加</span>
                 <input 
                   type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileUpload} 
+                  ref={wallpaperInputRef} 
+                  onChange={(e) => handleFileUpload(e, setWallpaper)} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AIアイコン設定 */}
+        <div>
+          <h2 className="text-sm font-bold text-slate-500 mb-2 px-1">AIアシスタントアイコン</h2>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden p-4">
+            <div className="flex items-center space-x-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                {aiCustomIcon ? (
+                  <img src={aiCustomIcon} alt="Custom AI Icon" className="w-full h-full object-cover" />
+                ) : (
+                  <MessageSquare className="w-7 h-7 text-white" />
+                )}
+              </div>
+              <div className="flex flex-col space-y-2">
+                <button 
+                  onClick={() => aiIconInputRef.current?.click()}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-medium rounded-lg transition-colors text-slate-700"
+                >
+                  画像を選択
+                </button>
+                {aiCustomIcon && (
+                  <button 
+                    onClick={() => setAiCustomIcon(null)}
+                    className="px-4 py-2 text-red-500 hover:bg-red-50 text-sm font-medium rounded-lg transition-colors text-left"
+                  >
+                    デフォルトに戻す
+                  </button>
+                )}
+                <input 
+                  type="file" 
+                  ref={aiIconInputRef} 
+                  onChange={(e) => handleFileUpload(e, setAiCustomIcon)} 
                   accept="image/*" 
                   className="hidden" 
                 />
@@ -444,6 +484,7 @@ export default function App() {
   // OS全体で共有するデータ
   const [photos, setPhotos] = useState([]);
   const [wallpaper, setWallpaper] = useState('bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900');
+  const [aiCustomIcon, setAiCustomIcon] = useState(null);
 
   useEffect(() => {
     if (!document.getElementById('tailwind-cdn')) {
@@ -521,9 +562,13 @@ export default function App() {
                   <div key={app.id} className="flex flex-col items-center group">
                     <button 
                       onClick={() => handleOpenApp(app.id)}
-                      className={`w-14 h-14 ${app.color} rounded-2xl flex items-center justify-center shadow-lg transform active:scale-90 transition-all duration-200 group-hover:shadow-xl`}
+                      className={`w-14 h-14 ${app.id === 'ai' && aiCustomIcon ? '' : app.color} rounded-2xl flex items-center justify-center shadow-lg transform active:scale-90 transition-all duration-200 group-hover:shadow-xl overflow-hidden`}
                     >
-                      <app.icon className="w-7 h-7 text-white" />
+                      {app.id === 'ai' && aiCustomIcon ? (
+                        <img src={aiCustomIcon} alt="AI Custom Icon" className="w-full h-full object-cover" />
+                      ) : (
+                        <app.icon className="w-7 h-7 text-white" />
+                      )}
                     </button>
                     <span className="text-[10px] text-white mt-2 font-medium tracking-wide drop-shadow-md">{app.name}</span>
                   </div>
@@ -544,6 +589,8 @@ export default function App() {
                     setPhotos={setPhotos} 
                     currentWallpaper={wallpaper}
                     setWallpaper={setWallpaper}
+                    aiCustomIcon={aiCustomIcon}
+                    setAiCustomIcon={setAiCustomIcon}
                   />
                 )}
               </div>
