@@ -811,16 +811,18 @@ export default function App() {
     }
   };
 
-  // スワイプ・ドラッグのハンドリング
-  const handlePointerDown = (e) => {
+  // スワイプ・ドラッグのハンドリング (タッチとマウスを分離して検知)
+  const handleDragStart = (e) => {
     if (activeApp) return; // アプリ起動中は無効化
-    setStartY(e.clientY || e.touches?.[0].clientY);
+    // タッチの場合は e.touches[0]、マウスの場合は e を参照
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    setStartY(clientY);
   };
 
-  const handlePointerUp = (e) => {
+  const handleDragEnd = (e) => {
     if (activeApp || startY === null) return; // アプリ起動中は無効化
-    const endY = e.clientY || e.changedTouches?.[0].clientY;
-    const diff = startY - endY;
+    const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+    const diff = startY - clientY;
 
     // 上スワイプ (50px以上) 
     if (diff > 50 && !isDrawerOpen) {
@@ -852,9 +854,11 @@ export default function App() {
         {/* インナーベゼルとスクリーン */}
         <div 
           className="relative w-full h-full bg-slate-900 rounded-[2.5rem] overflow-hidden flex flex-col shadow-inner select-none"
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
+          onTouchStart={handleDragStart}
+          onTouchEnd={handleDragEnd}
+          onMouseDown={handleDragStart}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
         >
           
           {/* 背景画像 (ホーム画面用) */}
@@ -919,6 +923,8 @@ export default function App() {
             <div 
               className={`absolute inset-0 bg-white/95 backdrop-blur-xl z-30 transition-all duration-300 flex flex-col ${isDrawerOpen ? 'translate-y-0 opacity-100' : 'translate-y-[150%] opacity-0 pointer-events-none'}`}
               onPointerDown={(e) => e.stopPropagation()} // ドロワー内での操作を親に伝播させない
+              onTouchStart={(e) => e.stopPropagation()} // タッチ操作も伝播させない
+              onMouseDown={(e) => e.stopPropagation()} 
             >
               <div className="h-10 w-full flex justify-center items-center cursor-pointer mt-8" onClick={() => setIsDrawerOpen(false)}>
                 <ChevronDown className="w-6 h-6 text-slate-400" />
@@ -971,7 +977,12 @@ export default function App() {
               
               <div className="h-8 bg-transparent pointer-events-none shrink-0"></div>
               
-              <div className="flex-grow overflow-hidden relative" onPointerDown={(e) => e.stopPropagation()}>
+              <div 
+                className="flex-grow overflow-hidden relative" 
+                onPointerDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 {ActiveComponent && (
                   <ActiveComponent 
                     onClose={handleHomeAction} 
