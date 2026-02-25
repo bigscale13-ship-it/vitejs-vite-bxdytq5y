@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download, Images } from 'lucide-react';
+import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download, Images, Check, Plus } from 'lucide-react';
 
 // --- AI API Utility (Mock) ---
 const generateAIResponse = async (prompt, chatHistory = []) => {
-  // APIを使用せず、1秒待機した後にサンプルの返答を返す
   return new Promise(resolve => {
     setTimeout(() => {
       resolve(`「${prompt}」ですね。承知いたしました。何か他にお手伝いできることはありますか？（※これはAPIを使用しないサンプルの返答です）`);
@@ -24,7 +23,6 @@ const CameraApp = ({ onClose, setPhotos }) => {
   useEffect(() => {
     const startCamera = async () => {
       try {
-        // facingMode: "environment" でバックカメラを優先
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         if (videoRef.current) {
           videoRef.current.srcObject = streamRef.current;
@@ -59,11 +57,9 @@ const CameraApp = ({ onClose, setPhotos }) => {
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      // 高画質のJPG形式で画像データを生成
       const imageUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCapturedImage(imageUrl);
       
-      // 写真アプリ用に状態を保存
       if (setPhotos) {
         setPhotos(prev => [imageUrl, ...prev]);
       }
@@ -122,7 +118,7 @@ const CameraApp = ({ onClose, setPhotos }) => {
   );
 };
 
-// 2. Gallery App (写真フォルダ)
+// 2. Gallery App
 const GalleryApp = ({ onClose, photos }) => {
   const [viewImage, setViewImage] = useState(null);
 
@@ -187,6 +183,10 @@ const AIAssistantApp = ({ onClose }) => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
     
+    if (document.activeElement) {
+      document.activeElement.blur();
+    }
+
     const userMsg = input.trim();
     setInput("");
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
@@ -255,28 +255,29 @@ const AIAssistantApp = ({ onClose }) => {
 
 // 4. Browser App
 const BrowserApp = ({ onClose }) => {
-  // 初期ページをGoogleに設定 (iframeで表示しやすくするためのパラメータ付き)
   const [inputUrl, setInputUrl] = useState("https://www.google.com/webhp?igu=1");
   const [currentUrl, setCurrentUrl] = useState("https://www.google.com/webhp?igu=1");
 
   const handleNavigate = (e) => {
     e.preventDefault();
+    
+    if (document.activeElement) {
+      document.activeElement.blur();
+    }
+
     let query = inputUrl.trim();
     if (!query) return;
     
-    // 入力がURL形式かどうかを判定
     const isUrl = /^https?:\/\//i.test(query) || /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(query);
 
     if (isUrl) {
       let urlToNavigate = query;
-      // http/httpsがなければ補完
       if (!/^https?:\/\//i.test(urlToNavigate)) {
         urlToNavigate = `https://${urlToNavigate}`;
       }
       setCurrentUrl(urlToNavigate);
       setInputUrl(urlToNavigate);
     } else {
-      // URLでなければGoogle検索を実行
       const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&igu=1`;
       setCurrentUrl(searchUrl);
     }
@@ -315,7 +316,28 @@ const BrowserApp = ({ onClose }) => {
 };
 
 // 5. Settings App
-const SettingsApp = ({ onClose }) => {
+const SettingsApp = ({ onClose, currentWallpaper, setWallpaper }) => {
+  const fileInputRef = useRef(null);
+
+  const wallpapers = [
+    { id: 'default', name: 'デフォルト', style: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900' },
+    { id: 'ocean', name: 'オーシャン', style: 'bg-gradient-to-br from-blue-500 to-cyan-300' },
+    { id: 'sunset', name: 'サンセット', style: 'bg-gradient-to-br from-orange-500 to-pink-500' },
+    { id: 'forest', name: 'フォレスト', style: 'bg-gradient-to-br from-green-500 to-emerald-700' },
+    { id: 'dark', name: 'ダーク', style: 'bg-slate-900' },
+  ];
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setWallpaper(reader.result); // Base64化された画像データを壁紙としてセット
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-100 text-slate-900">
       <div className="p-4 bg-white border-b border-slate-200 flex items-center">
@@ -324,30 +346,81 @@ const SettingsApp = ({ onClose }) => {
         </button>
         <h1 className="text-xl font-bold">設定</h1>
       </div>
-      <div className="flex-grow overflow-y-auto p-4 space-y-4">
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-            <span className="font-medium">機内モード</span>
-            <div className="w-10 h-6 bg-slate-300 rounded-full relative">
-              <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 shadow-sm"></div>
+      <div className="flex-grow overflow-y-auto p-4 space-y-6">
+        
+        {/* 壁紙設定 */}
+        <div>
+          <h2 className="text-sm font-bold text-slate-500 mb-2 px-1">壁紙</h2>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden p-4">
+            <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+              {wallpapers.map((wp) => (
+                <div key={wp.id} className="flex flex-col items-center">
+                  <button 
+                    onClick={() => setWallpaper(wp.style)}
+                    className={`w-10 h-10 rounded-full ${wp.style} border-2 flex items-center justify-center transition-transform active:scale-90 ${currentWallpaper === wp.style ? 'border-blue-500' : 'border-transparent'}`}
+                  >
+                    {currentWallpaper === wp.style && <Check className="w-5 h-5 text-white drop-shadow-md" />}
+                  </button>
+                  <span className="text-[10px] text-slate-500 mt-1">{wp.name}</span>
+                </div>
+              ))}
+              {/* カスタム画像追加ボタン */}
+              <div className="flex flex-col items-center">
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-10 h-10 rounded-full bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center transition-transform active:scale-90 ${currentWallpaper?.startsWith('data:image') ? 'border-blue-500 border-solid' : 'hover:border-slate-400'}`}
+                >
+                  {currentWallpaper?.startsWith('data:image') ? (
+                    <Check className="w-5 h-5 text-blue-500 drop-shadow-md" />
+                  ) : (
+                    <Plus className="w-5 h-5 text-slate-400" />
+                  )}
+                </button>
+                <span className="text-[10px] text-slate-500 mt-1">追加</span>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              </div>
             </div>
           </div>
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-            <span className="font-medium">Wi-Fi</span>
-            <span className="text-slate-500 text-sm">接続済み</span>
-          </div>
-          <div className="p-4 flex justify-between items-center">
-            <span className="font-medium">Bluetooth</span>
-            <span className="text-slate-500 text-sm">オン</span>
+        </div>
+
+        {/* ネットワーク設定 */}
+        <div>
+          <h2 className="text-sm font-bold text-slate-500 mb-2 px-1">ネットワーク</h2>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+              <span className="font-medium">機内モード</span>
+              <div className="w-10 h-6 bg-slate-300 rounded-full relative">
+                <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 shadow-sm"></div>
+              </div>
+            </div>
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+              <span className="font-medium">Wi-Fi</span>
+              <span className="text-slate-500 text-sm">接続済み</span>
+            </div>
+            <div className="p-4 flex justify-between items-center">
+              <span className="font-medium">Bluetooth</span>
+              <span className="text-slate-500 text-sm">オン</span>
+            </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100">
-            <span className="font-medium">OS情報</span>
-            <p className="text-xs text-slate-500 mt-1">WebOS v1.0.0 (Build 2026)</p>
+        {/* システム情報 */}
+        <div>
+          <h2 className="text-sm font-bold text-slate-500 mb-2 px-1">システム</h2>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100">
+              <span className="font-medium">OS情報</span>
+              <p className="text-xs text-slate-500 mt-1">WebOS v1.0.0 (Build 2026)</p>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );
@@ -368,12 +441,11 @@ export default function App() {
   const [activeApp, setActiveApp] = useState(null);
   const [time, setTime] = useState(new Date());
   
-  // OS全体で共有するデータ（写真一覧など）
+  // OS全体で共有するデータ
   const [photos, setPhotos] = useState([]);
+  const [wallpaper, setWallpaper] = useState('bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900');
 
-  // Tailwind CSSの動的読み込みと時計の更新
   useEffect(() => {
-    // CDNからTailwindを自動で読み込む
     if (!document.getElementById('tailwind-cdn')) {
       const script = document.createElement('script');
       script.id = 'tailwind-cdn';
@@ -399,11 +471,12 @@ export default function App() {
 
   const ActiveComponent = activeApp ? APPS.find(a => a.id === activeApp)?.component : null;
   const activeAppColor = activeApp ? 'text-black' : 'text-white';
+  const isImageWallpaper = wallpaper.startsWith('data:image');
 
   return (
     <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4 sm:p-8 font-sans">
       
-      {/* 仮想スマートフォンの外枠 (デバイスベゼル) */}
+      {/* 仮想スマートフォンの外枠 */}
       <div className="relative w-full max-w-[380px] h-[800px] max-h-[90vh] bg-black rounded-[3rem] p-3 shadow-2xl border-4 border-neutral-800 overflow-hidden ring-1 ring-white/10">
         
         {/* インナーベゼルとスクリーン */}
@@ -412,10 +485,13 @@ export default function App() {
           {/* 背景画像 (ホーム画面用) */}
           {!activeApp && (
             <div className="absolute inset-0 z-0">
-               <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 opacity-80"></div>
+               <div 
+                 className={`absolute inset-0 opacity-90 transition-all duration-500 ${!isImageWallpaper ? wallpaper : 'bg-cover bg-center'}`}
+                 style={isImageWallpaper ? { backgroundImage: `url(${wallpaper})` } : {}}
+               ></div>
                {/* 装飾的なぼかし円 */}
-               <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
-               <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+               <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50"></div>
+               <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-black/20 rounded-full mix-blend-overlay filter blur-3xl opacity-50"></div>
             </div>
           )}
 
@@ -423,8 +499,7 @@ export default function App() {
           <div className={`h-8 w-full flex justify-between items-center px-6 text-xs font-medium z-50 ${activeAppColor} transition-colors duration-300 absolute top-0 left-0 bg-gradient-to-b from-black/40 to-transparent`}>
             <span>{formatTime(time)}</span>
             
-            {/* ノッチ / ダイナミックアイランド風 */}
-            <div className="absolute left-1/2 top-1 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-50 flex items-center justify-center">
+            <div className="absolute left-1/2 top-1 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-50 flex items-center justify-center shadow-md">
                 <div className="w-2 h-2 rounded-full bg-slate-800 mr-2"></div>
                 <div className="w-1 h-1 rounded-full bg-blue-900/50"></div>
             </div>
@@ -459,16 +534,16 @@ export default function App() {
             {/* アプリウィンドウ */}
             <div className={`absolute inset-0 bg-white transition-all duration-300 z-20 flex flex-col ${activeApp ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}`}>
               
-              {/* アプリ内ヘッダー (ステータスバーの領域を確保) */}
               <div className="h-8 bg-transparent pointer-events-none"></div>
               
-              {/* アプリコンテンツ */}
               <div className="flex-grow overflow-hidden relative">
                 {ActiveComponent && (
                   <ActiveComponent 
                     onClose={handleCloseApp} 
                     photos={photos} 
                     setPhotos={setPhotos} 
+                    currentWallpaper={wallpaper}
+                    setWallpaper={setWallpaper}
                   />
                 )}
               </div>
@@ -476,24 +551,14 @@ export default function App() {
 
           </div>
 
-          {/* ホームインジケーター (スワイプアップでホームに戻る想定のUI) */}
+          {/* ホームインジケーター */}
           <div className="h-6 w-full absolute bottom-0 z-50 flex justify-center items-center cursor-pointer group pb-2" onClick={handleCloseApp}>
-             <div className="w-1/3 h-1 bg-white/50 group-hover:bg-white rounded-full transition-colors"></div>
+             <div className="w-1/3 h-1 bg-white/50 group-hover:bg-white rounded-full transition-colors drop-shadow-md"></div>
           </div>
 
         </div>
       </div>
       
-      {/* 操作ヒント */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:flex flex-col space-y-4 text-neutral-400 max-w-xs bg-neutral-800/50 p-6 rounded-2xl border border-neutral-700/50">
-        <h3 className="text-white font-bold mb-2">WebOS Prototype</h3>
-        <p className="text-sm">端末やOSに依存しない仮想スマートフォンの概念実証です。</p>
-        <ul className="text-sm space-y-2 list-disc pl-4">
-            <li><strong>AIアシスタント:</strong> 内蔵LLM APIと通信し、コンテキストを保持して会話します。</li>
-            <li><strong>カメラと写真:</strong> 撮影した画像は写真アプリ内に保存・一覧表示されます。</li>
-            <li><strong>操作:</strong> 画面下部の白いバーをクリックするか、各アプリ左上の戻るボタンでホームに戻ります。</li>
-        </ul>
-      </div>
     </div>
   );
 }
