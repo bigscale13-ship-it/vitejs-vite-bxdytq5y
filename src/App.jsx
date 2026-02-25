@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download, Images, Check, Plus, Clock, Calendar, Mail, Map as MapIcon, Calculator, Phone, Users, FileText, Search, ChevronDown, Smartphone, HardDrive, Volume2, Lock, User, Info, ChevronRight, Palette, Sparkles, Bluetooth, MapPin, Edit3 } from 'lucide-react';
+import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download, Images, Check, Plus, Clock, Calendar, Mail, Map as MapIcon, Calculator, Phone, Users, FileText, Search, ChevronDown, Smartphone, HardDrive, Volume2, Lock, User, Info, ChevronRight, Palette, Sparkles, Bluetooth, MapPin, Edit3, Mic } from 'lucide-react';
 
 // --- AI API Utility (Mock) ---
 const generateAIResponse = async (prompt, chatHistory = []) => {
@@ -899,30 +899,57 @@ export default function App() {
           {/* メインコンテンツエリア */}
           <div className="flex-grow pt-8 relative z-10 flex flex-col">
             
-            {/* ホーム画面 */}
-            <div className={`flex-grow p-6 transition-all duration-300 ${activeApp || isDrawerOpen ? 'opacity-0 scale-95 pointer-events-none absolute inset-0' : 'opacity-100 scale-100'}`}>
-              <div className="grid grid-cols-4 gap-y-6 gap-x-4 mt-8">
-                {APPS.filter(app => app.inHome).map((app) => (
-                  <div key={app.id} className="flex flex-col items-center group">
-                    <button 
-                      onClick={() => handleOpenApp(app.id)}
-                      className={`w-14 h-14 ${app.id === 'ai' && aiCustomIcon ? '' : app.color} rounded-2xl flex items-center justify-center shadow-lg transform active:scale-90 transition-all duration-200 overflow-hidden`}
-                    >
-                      {app.id === 'ai' && aiCustomIcon ? (
-                        <img src={aiCustomIcon} alt="AI Custom Icon" className="w-full h-full object-cover" />
-                      ) : (
-                        <app.icon className="w-7 h-7 text-white" />
-                      )}
-                    </button>
-                    <span className="text-[10px] text-white mt-2 font-medium tracking-wide drop-shadow-md truncate w-full text-center">{app.name}</span>
-                  </div>
-                ))}
-              </div>
+            {/* ホーム画面 (Android風) */}
+            <div className={`flex-grow flex flex-col justify-between p-4 pb-6 transition-all duration-300 ${activeApp || isDrawerOpen ? 'opacity-0 scale-95 pointer-events-none absolute inset-0' : 'opacity-100 scale-100'}`}>
               
-              {/* スワイプヒント */}
-              <div className="absolute bottom-10 left-0 w-full flex flex-col items-center justify-center text-white/70 animate-bounce pointer-events-none">
-                <ChevronLeft className="w-5 h-5 rotate-90 mb-1 opacity-50" />
-                <span className="text-[10px] font-medium tracking-wider drop-shadow-md">上にスワイプ</span>
+              {/* 時計ウィジェット */}
+              <div className="flex flex-col items-center mt-12 text-white drop-shadow-md">
+                <div className="text-[64px] font-normal leading-none tracking-tight tabular-nums">
+                  {time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                <div className="text-base mt-2 font-medium tracking-wide">
+                  {time.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', weekday: 'long' })}
+                </div>
+              </div>
+
+              {/* 下部エリア（アイコン＋検索バー） */}
+              <div className="flex flex-col w-full space-y-6">
+                
+                {/* アプリアイコン (ドック風) */}
+                <div className="flex justify-around items-end px-1">
+                  {APPS.filter(app => app.inHome).map((app) => (
+                    <div key={app.id} className="flex flex-col items-center group">
+                      <button 
+                        onClick={() => handleOpenApp(app.id)}
+                        className={`w-12 h-12 sm:w-14 sm:h-14 ${app.id === 'ai' && aiCustomIcon ? '' : app.color} rounded-full flex items-center justify-center shadow-lg transform active:scale-90 transition-all duration-200 overflow-hidden`}
+                      >
+                        {app.id === 'ai' && aiCustomIcon ? (
+                          <img src={aiCustomIcon} alt="AI Custom Icon" className="w-full h-full object-cover" />
+                        ) : (
+                          <app.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                        )}
+                      </button>
+                      <span className="text-[10px] text-white mt-1.5 font-medium tracking-wide drop-shadow-md truncate w-full text-center">{app.name}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 検索バー風ウィジェット */}
+                <div 
+                  className="w-full h-12 bg-teal-100/90 backdrop-blur-md rounded-full flex items-center px-4 shadow-md cursor-pointer active:scale-[0.98] transition-transform"
+                  onClick={() => handleOpenApp('browser')}
+                >
+                  <span className="text-xl font-bold text-teal-900 mr-3 select-none">G</span>
+                  <div className="flex-grow text-teal-800 text-sm font-medium flex items-center justify-between">
+                    <span></span>
+                    <div className="flex space-x-4 opacity-70">
+                      <span className="font-bold text-sm">A/文</span>
+                      <Mic className="w-5 h-5" />
+                      <Camera className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
