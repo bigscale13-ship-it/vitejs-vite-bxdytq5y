@@ -326,10 +326,11 @@ const BrowserApp = ({ onClose }) => {
 };
 
 // 5. Settings App
-const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, setAiCustomIcon }) => {
+const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, setAiCustomIcon, customFavicon, setCustomFavicon }) => {
   const [view, setView] = useState('main');
   const wallpaperInputRef = useRef(null);
   const aiIconInputRef = useRef(null);
+  const faviconInputRef = useRef(null);
 
   const wallpapers = [
     { id: 'default', name: 'デフォルト', style: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900' },
@@ -383,7 +384,7 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
        <SettingItem icon={Wifi} title="ネットワークとインターネット" subtitle="Wi-Fi, モバイル, データ使用量" />
        <SettingItem icon={Bluetooth} title="接続済みのデバイス" subtitle="Bluetooth, キャスト" />
        <div className="h-2 bg-slate-50"></div>
-       <SettingItem icon={Palette} title="壁紙とスタイル" subtitle="壁紙、テーマカラーの変更" onClick={() => setView('display')} hasArrow />
+       <SettingItem icon={Palette} title="壁紙とスタイル" subtitle="壁紙、ファビコンの設定" onClick={() => setView('display')} hasArrow />
        <SettingItem icon={Sparkles} title="AIアシスタント" subtitle="アイコンや動作の設定" onClick={() => setView('ai')} hasArrow />
        <div className="h-2 bg-slate-50"></div>
        <SettingItem icon={Battery} title="バッテリー" subtitle="85% - 残り約12時間" />
@@ -450,6 +451,42 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
               <input type="file" ref={wallpaperInputRef} onChange={(e) => handleFileUpload(e, setWallpaper)} accept="image/*" className="hidden" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ファビコン設定 */}
+      <div>
+        <h2 className="text-xs font-bold text-slate-500 mb-2 px-1 uppercase tracking-wider">WebOSアイコン (ホーム画面追加用)</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-4">
+          <div className="flex items-center space-x-4">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0 shadow-sm">
+              {customFavicon ? (
+                <img src={customFavicon} alt="Custom Favicon" className="w-full h-full object-cover" />
+              ) : (
+                <Globe className="w-7 h-7 text-slate-400" />
+              )}
+            </div>
+            <div className="flex flex-col space-y-2">
+              <button 
+                onClick={() => faviconInputRef.current?.click()}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-medium rounded-lg transition-colors text-slate-700"
+              >
+                画像を選択
+              </button>
+              {customFavicon && (
+                <button 
+                  onClick={() => setCustomFavicon(null)}
+                  className="px-4 py-2 text-red-500 hover:bg-red-50 text-sm font-medium rounded-lg transition-colors text-left"
+                >
+                  デフォルトに戻す
+                </button>
+              )}
+              <input type="file" ref={faviconInputRef} onChange={(e) => handleFileUpload(e, setCustomFavicon)} accept="image/*" className="hidden" />
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+            ※ここで設定した画像は、ブラウザのタブやスマホの「ホーム画面に追加」をした際のアイコンとして使用されます。（OSの仕様により反映に時間がかかる場合があります）
+          </p>
         </div>
       </div>
     </div>
@@ -785,6 +822,7 @@ export default function App() {
   const [photos, setPhotos] = useState([]);
   const [wallpaper, setWallpaper] = useState('bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900');
   const [aiCustomIcon, setAiCustomIcon] = useState(null);
+  const [customFavicon, setCustomFavicon] = useState(null);
 
   // スワイプ検知用の状態
   const [startY, setStartY] = useState(null);
@@ -799,6 +837,29 @@ export default function App() {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // ファビコンとapple-touch-iconを動的に更新する処理
+  useEffect(() => {
+    if (!customFavicon) return;
+
+    // 標準のファビコン更新
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = customFavicon;
+
+    // iOS等のホーム画面追加用アイコン更新
+    let appleLink = document.querySelector("link[rel='apple-touch-icon']");
+    if (!appleLink) {
+      appleLink = document.createElement('link');
+      appleLink.rel = 'apple-touch-icon';
+      document.head.appendChild(appleLink);
+    }
+    appleLink.href = customFavicon;
+  }, [customFavicon]);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
@@ -1026,6 +1087,8 @@ export default function App() {
                     setWallpaper={setWallpaper}
                     aiCustomIcon={aiCustomIcon}
                     setAiCustomIcon={setAiCustomIcon}
+                    customFavicon={customFavicon}
+                    setCustomFavicon={setCustomFavicon}
                     appName={activeAppObj?.name}
                   />
                 )}
