@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download, Images, Check, Plus, Clock, Calendar, Mail, Map as MapIcon, Calculator, Phone, Users, FileText, Search, ChevronDown, Smartphone, HardDrive, Volume2, Lock, User, Info, ChevronRight, Palette, Sparkles, Bluetooth, MapPin, Edit3, Mic } from 'lucide-react';
+import { Camera, MessageSquare, Globe, Settings, ChevronLeft, Battery, Wifi, Signal, X, Download, Images, Check, Plus, Clock, Calendar, Mail, Map as MapIcon, Calculator, Phone, Users, FileText, Search, ChevronDown, Smartphone, HardDrive, Volume2, Lock, User, Info, ChevronRight, Palette, Sparkles, Bluetooth, MapPin, Edit3, Mic, Shield, ShieldAlert } from 'lucide-react';
 
 // --- AI API Utility (Mock) ---
 const generateAIResponse = async (prompt, chatHistory = []) => {
@@ -261,6 +261,7 @@ const AIAssistantApp = ({ onClose }) => {
 const BrowserApp = ({ onClose }) => {
   const [inputUrl, setInputUrl] = useState("https://www.google.com/webhp?igu=1");
   const [currentUrl, setCurrentUrl] = useState("https://www.google.com/webhp?igu=1");
+  const [useProxy, setUseProxy] = useState(false);
 
   const handleNavigate = (e) => {
     e.preventDefault();
@@ -280,13 +281,17 @@ const BrowserApp = ({ onClose }) => {
         urlToNavigate = `https://${urlToNavigate}`;
       }
 
+      // YouTubeのURLだった場合は、埋め込み用(Embed)URLに変換してX-Frame-Optionsを回避する
       const ytMatch = urlToNavigate.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
       if (ytMatch) {
         urlToNavigate = `https://www.youtube.com/embed/${ytMatch[1]}`;
+      } else if (useProxy) {
+        // プロキシモードONの場合、CORS回避プロキシを通す
+        urlToNavigate = `https://corsproxy.io/?${encodeURIComponent(urlToNavigate)}`;
       }
 
       setCurrentUrl(urlToNavigate);
-      setInputUrl(urlToNavigate);
+      setInputUrl(urlToNavigate); // プロキシURLは見せないよう配慮できるが、ここではそのまま
     } else {
       const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&igu=1`;
       setCurrentUrl(searchUrl);
@@ -309,6 +314,13 @@ const BrowserApp = ({ onClose }) => {
             placeholder="検索またはURLを入力"
           />
         </form>
+        <button 
+          onClick={() => setUseProxy(!useProxy)} 
+          className={`p-1.5 rounded-full shrink-0 transition-colors ${useProxy ? 'bg-blue-100 text-blue-600' : 'hover:bg-slate-200 text-slate-400'}`}
+          title="プロキシ経由モード (制限回避)"
+        >
+          {useProxy ? <Shield className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
+        </button>
       </div>
       <div className="flex-grow relative bg-black overflow-hidden w-full">
         <iframe 
@@ -325,7 +337,7 @@ const BrowserApp = ({ onClose }) => {
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         />
         <div className="absolute bottom-2 left-4 right-4 bg-black/80 text-white text-[10px] p-2 rounded-xl pointer-events-none text-center shadow-lg opacity-80 z-10">
-          ※外部サイトのセキュリティ設定により表示できないページがあります。YouTubeを見る場合は、動画URLを直接入力してください。
+          ※外部サイトのセキュリティ設定により表示できない場合は、右上の盾アイコン(プロキシ)をONにしてURLを再検索してください。
         </div>
       </div>
     </div>
