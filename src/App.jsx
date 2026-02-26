@@ -279,6 +279,12 @@ const BrowserApp = ({ onClose }) => {
       if (!/^https?:\/\//i.test(urlToNavigate)) {
         urlToNavigate = `https://${urlToNavigate}`;
       }
+
+      const ytMatch = urlToNavigate.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+      if (ytMatch) {
+        urlToNavigate = `https://www.youtube.com/embed/${ytMatch[1]}`;
+      }
+
       setCurrentUrl(urlToNavigate);
       setInputUrl(urlToNavigate);
     } else {
@@ -304,7 +310,7 @@ const BrowserApp = ({ onClose }) => {
           />
         </form>
       </div>
-      <div className="flex-grow relative bg-slate-50 overflow-hidden w-full">
+      <div className="flex-grow relative bg-black overflow-hidden w-full">
         <iframe 
           src={currentUrl} 
           className="border-none bg-white block"
@@ -316,9 +322,10 @@ const BrowserApp = ({ onClose }) => {
           }}
           title="Virtual Browser"
           sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         />
         <div className="absolute bottom-2 left-4 right-4 bg-black/80 text-white text-[10px] p-2 rounded-xl pointer-events-none text-center shadow-lg opacity-80 z-10">
-          ※外部サイトのセキュリティ設定(X-Frame-Options等)により、表示がブロックされるページがあります。
+          ※外部サイトのセキュリティ設定により表示できないページがあります。YouTubeを見る場合は、動画URLを直接入力してください。
         </div>
       </div>
     </div>
@@ -838,11 +845,11 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // ファビコンとapple-touch-iconを動的に更新する処理
+  // ファビコンとapple-touch-icon、動的Manifestを更新する処理
   useEffect(() => {
     if (!customFavicon) return;
 
-    // 標準のファビコン更新
+    // 1. 標準のファビコン更新
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
       link = document.createElement('link');
@@ -851,7 +858,7 @@ export default function App() {
     }
     link.href = customFavicon;
 
-    // iOS等のホーム画面追加用アイコン更新
+    // 2. iOS等のホーム画面追加用アイコン更新
     let appleLink = document.querySelector("link[rel='apple-touch-icon']");
     if (!appleLink) {
       appleLink = document.createElement('link');
@@ -859,6 +866,40 @@ export default function App() {
       document.head.appendChild(appleLink);
     }
     appleLink.href = customFavicon;
+
+    // 3. Android/Chrome向け 動的 Manifest の生成と適用
+    const manifest = {
+      name: "WebOS",
+      short_name: "WebOS",
+      start_url: "/",
+      display: "standalone",
+      background_color: "#171717",
+      theme_color: "#171717",
+      icons: [
+        {
+          src: customFavicon,
+          sizes: "192x192 512x512",
+          type: "image/png"
+        }
+      ]
+    };
+
+    const stringManifest = JSON.stringify(manifest);
+    const blob = new Blob([stringManifest], { type: 'application/json' });
+    const manifestURL = URL.createObjectURL(blob);
+
+    let manifestLink = document.querySelector("link[rel='manifest']");
+    if (!manifestLink) {
+      manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      document.head.appendChild(manifestLink);
+    }
+    manifestLink.href = manifestURL;
+
+    // クリーンアップ
+    return () => {
+      URL.revokeObjectURL(manifestURL);
+    };
   }, [customFavicon]);
 
   const formatTime = (date) => {
