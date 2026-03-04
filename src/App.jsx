@@ -286,8 +286,8 @@ const BrowserApp = ({ onClose }) => {
       if (ytMatch) {
         urlToNavigate = `https://www.youtube.com/embed/${ytMatch[1]}`;
       } else if (useProxy) {
-        // プロキシモードONの場合、CORS回避プロキシを通す
-        urlToNavigate = `https://corsproxy.io/?${encodeURIComponent(urlToNavigate)}`;
+        // プロキシモードONの場合、別のCORS回避プロキシを通す
+        urlToNavigate = `https://api.allorigins.win/raw?url=${encodeURIComponent(urlToNavigate)}`;
       }
 
       setCurrentUrl(urlToNavigate);
@@ -378,7 +378,7 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
       <div className="w-8 flex justify-center text-slate-500 mr-3 shrink-0">
         {Icon && <Icon className="w-5 h-5" />}
       </div>
-      <div className="flex-grow min-w-0">
+      <div className="flex-grow min-w-0 text-left">
         <div className="text-sm font-medium text-slate-800 truncate">{title}</div>
         {subtitle && <div className="text-[11px] text-slate-500 truncate mt-0.5">{subtitle}</div>}
       </div>
@@ -439,7 +439,7 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
   );
 
   const renderDisplaySettings = () => (
-    <div className="p-4 space-y-6 bg-slate-50 h-full">
+    <div className="p-4 space-y-6 bg-slate-50 h-full text-left">
       <div>
         <h2 className="text-xs font-bold text-slate-500 mb-2 px-1 uppercase tracking-wider">壁紙の選択</h2>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-4">
@@ -466,7 +466,7 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
                   <Plus className="w-5 h-5 text-slate-400" />
                 )}
               </button>
-              <span className="text-[10px] text-slate-500 mt-1">追加</span>
+              <span className="text-[10px] text-slate-500 mt-1 text-center">追加</span>
               <input type="file" ref={wallpaperInputRef} onChange={(e) => handleFileUpload(e, setWallpaper)} accept="image/*" className="hidden" />
             </div>
           </div>
@@ -512,7 +512,7 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
   );
 
   const renderAISettings = () => (
-    <div className="p-4 space-y-6 bg-slate-50 h-full">
+    <div className="p-4 space-y-6 bg-slate-50 h-full text-left">
       <div>
         <h2 className="text-xs font-bold text-slate-500 mb-2 px-1 uppercase tracking-wider">AIアシスタントアイコン</h2>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-4">
@@ -548,7 +548,7 @@ const SettingsApp = ({ onClose, currentWallpaper, setWallpaper, aiCustomIcon, se
   );
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 text-slate-900">
+    <div className="flex flex-col h-full bg-slate-50 text-slate-900 text-left">
       <div className="p-4 bg-white border-b border-slate-200 flex items-center shrink-0 shadow-sm z-10">
         <button onClick={() => view === 'main' ? onClose() : setView('main')} className="p-1 mr-2 rounded-full hover:bg-slate-100 text-slate-600">
           <ChevronLeft className="w-6 h-6" />
@@ -847,6 +847,8 @@ export default function App() {
   const [startY, setStartY] = useState(null);
 
   useEffect(() => {
+    document.title = "G-Core demo"; // ブラウザのタブタイトルを変更
+
     if (!document.getElementById('tailwind-cdn')) {
       const script = document.createElement('script');
       script.id = 'tailwind-cdn';
@@ -970,7 +972,7 @@ export default function App() {
     <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center p-4 sm:p-8 font-sans overflow-hidden overscroll-none">
       
       {/* 仮想スマートフォンの外枠 */}
-      <div className="relative w-full max-w-[380px] h-[800px] max-h-[90vh] bg-black rounded-[3rem] p-3 shadow-2xl border-4 border-neutral-800 overflow-hidden ring-1 ring-white/10">
+      <div className="relative w-full max-w-[380px] h-[800px] max-h-[90vh] bg-black rounded-[3rem] p-3 shadow-2xl border-4 border-neutral-800 overflow-hidden ring-1 ring-white/10 text-left">
         
         {/* インナーベゼルとスクリーン */}
         <div 
